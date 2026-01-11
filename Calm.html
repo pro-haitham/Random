@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You, Nasreen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@300&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            /* Merging the 'Blob' colors into a deep space gradient background */
+            background: radial-gradient(circle at bottom left, #1b2735 0%, #090a0f 100%);
+            font-family: 'Montserrat', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            cursor: pointer; /* From Source 1 */
+        }
+
+        /* 3D CANVAS */
+        #scene-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* TEXT OVERLAY */
+        #overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 10;
+            pointer-events: none;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(2rem, 5vw, 4rem);
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+            opacity: 0;
+            animation: fadeSlow 3s ease-in-out forwards 1s;
+            text-shadow: 0 0 25px rgba(161, 140, 209, 0.6);
+        }
+
+        p.message-text {
+            font-size: clamp(1rem, 2vw, 1.4rem);
+            line-height: 1.8;
+            font-weight: 300;
+            letter-spacing: 1px;
+            color: rgba(234, 234, 240, 0.9);
+            opacity: 0;
+            animation: fadeSlow 3s ease-in-out forwards 2.5s;
+        }
+
+        .highlight {
+            color: #fbc2eb; /* Soft pink from Source 1 */
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(251, 194, 235, 0.4);
+        }
+
+        /* CLICK HINT (From Source 1) */
+        .hint {
+            position: absolute;
+            top: 5%;
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.3);
+            z-index: 20;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* SIGNATURE (From Source 1) */
+        .signature {
+            position: absolute;
+            bottom: 5%;
+            width: 100%;
+            text-align: center;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.4);
+            opacity: 0;
+            z-index: 20;
+            animation: fadeSlow 2s ease forwards 4.5s;
+            font-family: 'Cinzel', serif;
+        }
+
+        @keyframes fadeSlow {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="ambient" src="ambient.mp3" loop></audio>
+
+    <div id="scene-container"></div>
+
+    <div class="hint">Click anywhere for sound</div>
+
+    <div id="overlay">
+        <h1>THANK YOU, Nesrine</h1>
+        
+        <div class="message-text">
+            Some things are hard to explain.<br>
+            For being a constant source of <span class="highlight">light</span> in my universe,<br>
+            this is my way of saying thank you.
+        </div>
+    </div>
+
+    <div class="signature">Made with appreciation</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        /* ----------------------------------------------------
+           PART A: AUDIO LOGIC (From Source 1)
+           ---------------------------------------------------- */
+        const audio = document.getElementById("ambient");
+        let audioStarted = false;
+
+        document.body.addEventListener("click", () => {
+            if (audioStarted) return;
+            audioStarted = true;
+
+            // Fade out the hint
+            document.querySelector('.hint').style.opacity = '0';
+            document.querySelector('.hint').style.transition = 'opacity 1s';
+
+            audio.volume = 0;
+            audio.play().catch(e => console.log("Audio play failed (interaction needed first)"));
+
+            let volume = 0;
+            const fade = setInterval(() => {
+                volume += 0.01;
+                if (volume >= 0.2) {   // Soft volume
+                    volume = 0.2;
+                    clearInterval(fade);
+                }
+                audio.volume = volume;
+            }, 100);
+        });
+
+        /* ----------------------------------------------------
+           PART B: THREE.JS STARFIELD (From Source 2)
+           ---------------------------------------------------- */
+        let scene, camera, renderer, stars, starGeo;
+
+        function init() {
+            scene = new THREE.Scene();
+            // Fog for depth fading
+            scene.fog = new THREE.FogExp2(0x0b1021, 0.0015); 
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.z = 1;
+            camera.rotation.x = Math.PI/2;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('scene-container').appendChild(renderer.domElement);
+
+            // Create Stars
+            starGeo = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+            const colorObj = new THREE.Color();
+
+            // 15,000 Stars
+            for(let i=0; i<15000; i++) {
+                let x = Math.random() * 600 - 300;
+                let y = Math.random() * 600 - 300;
+                let z = Math.random() * 600 - 300;
+                positions.push(x, y, z);
+
+                // Colors: Mix of Cyan, Purple, and White (To match Source 1 aesthetic)
+                let h = (Math.random() * 0.2 + 0.55); // Blue/Purple range
+                let s = 0.9; 
+                let l = Math.random() * 0.4 + 0.5; 
+                colorObj.setHSL(h, s, l);
+                colors.push(colorObj.r, colorObj.g, colorObj.b);
+            }
+
+            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            starGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            // Star Texture
+            let sprite = new THREE.TextureLoader().load( 'https://i.imgur.com/cTALZgN.png' );
+            let starMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.6,
+                map: sprite,
+                vertexColors: true,
+                transparent: true,
+                alphaTest: 0.5,
+                blending: THREE.AdditiveBlending
+            });
+
+            stars = new THREE.Points(starGeo, starMaterial);
+            scene.add(stars);
+
+            animate(); 
+        }
+
+        function animate() {
+            const positions = starGeo.attributes.position.array;
+            
+            for(let i=0; i<positions.length; i+=3) {
+                // Move stars
+                positions[i+1] -= 0.6; // Slightly slower for a majestic feel
+
+                // Reset stars if they pass camera
+                if(positions[i+1] < -300) {
+                    positions[i+1] = 300;
+                }
+            }
+            starGeo.attributes.position.needsUpdate = true; 
+            
+            // Rotation
+            stars.rotation.y += 0.0006;
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        init();
+    </script>
+</body>
+</html>
